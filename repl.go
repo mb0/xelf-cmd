@@ -26,6 +26,8 @@ func ReplHistoryPath(rest string) string {
 type Repl struct {
 	*liner.State
 	Hist string
+	Prog *exp.Prog
+	Wrap func(exp.Env) exp.Env
 }
 
 func NewRepl(hist string) *Repl {
@@ -39,7 +41,10 @@ func (r Repl) Run() {
 	r.readHistory()
 	var raw []byte
 	arg := &lit.Keyed{}
-	p := Prog()
+	p := r.Prog
+	if p == nil {
+		p = Prog()
+	}
 	for {
 		prompt := "> "
 		if len(raw) > 0 {
@@ -70,7 +75,14 @@ func (r Repl) Run() {
 		}
 		r.AppendHistory(bfr.String(el))
 		raw = raw[:0]
+		org := p.Root
+		if r.Wrap != nil {
+			p.Root = r.Wrap(org)
+		}
 		l, err := p.Run(el, arg)
+		if r.Wrap != nil {
+			p.Root = org
+		}
 		if err != nil {
 			log.Printf("! %v\n\n", err)
 			continue

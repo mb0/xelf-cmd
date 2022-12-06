@@ -7,10 +7,13 @@ import (
 	"xelf.org/xelf/xps"
 )
 
-func Prog() *exp.Prog {
+func ProgRoot() exp.Env {
 	roots := xps.EnvRoots()
 	mods := xps.NewMods(mod.Registry, xps.FindAll(roots))
 	fmods := mod.FileMods()
-	env := mod.NewLoaderEnv(extlib.Std, mods, fmods)
-	return exp.NewProg(env)
+	return mod.NewLoaderEnv(extlib.Std, mods, fmods)
+}
+
+func Prog() *exp.Prog {
+	return exp.NewProg(ProgRoot())
 }
