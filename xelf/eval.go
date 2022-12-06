@@ -8,6 +8,7 @@ import (
 	"xelf.org/cmd"
 	"xelf.org/xelf/exp"
 	"xelf.org/xelf/lit"
+	"xelf.org/xelf/typ"
 )
 
 var _ = cmd.Add("run", func(args []string) error {
@@ -26,6 +27,27 @@ var _ = cmd.Add("run", func(args []string) error {
 			return err
 		}
 		fmt.Println(res)
+		return nil
+	})
+})
+var _ = cmd.Add("test", func(args []string) error {
+	return cmd.SafetyWrap(func() (err error) {
+		var x exp.Exp
+		if len(args) > 0 {
+			x, err = exp.Parse(strings.Join(args, " "))
+		} else {
+			x, err = exp.Read(os.Stdin, "stdin")
+		}
+		if err != nil {
+			return err
+		}
+		p := cmd.Prog()
+		p.Arg = &lit.Keyed{}
+		res, err := p.Resl(p, x, typ.Void)
+		if err != nil {
+			return err
+		}
+		fmt.Println(res.Type())
 		return nil
 	})
 })

@@ -40,9 +40,10 @@ Use pipes and redirects to read or write to files:
 
    xelf sel 'posts/title' < blog.xelf | xelf fmt > titles.json
 
-Evaluation commands
+Evaluation commands accept arguments or stdin as input:
 
-   run         Evaluates the input and prints the result.
+   run         Evaluates the input and prints errors to stderr or the result to stdout.
+   test        Resolves the input and prints errors to stderr or the result type to stdout.
    repl        Starts a read-eval-print-loop to explore xelf with. Input acts as program init.
                The repl looks for $XELF_PLUGINS and makes them available for import.
 

@@ -72,5 +72,6 @@ var _ = cmd.Add("json", func(args []string) error {
 		return fmt.Errorf("could not marshal literal: %v", err)
 	}
 	os.Stdout.Write(buf)
+	fmt.Println()
 	return nil
 })
