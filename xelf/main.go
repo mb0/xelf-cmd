@@ -53,13 +53,15 @@ func printUsage() {
 const usage = `Usage: xelf [-dir=<path>] <command> [<args>]
 
 Most commands do read from stdin and print to standard output and error.
-Use pipes and redirects to read or write to files:
+Use pipes and redirects to use strings or read or write to files:
 
    xelf sel 'posts/title' < blog.xelf | xelf fmt > titles.json
+   echo '{a:1}{a:2}' | xelf sel a
+   xelf sel a <<< '{a:1}{a:2}'
 
 The -dir flag specifies the base dir and defaults to the current directory.
 
-Evaluation commands accept arguments or stdin as input:
+Evaluation commands accept arguments or stdin as input
    run         Evaluates the input and prints errors or the result.
    test        Resolves the input and prints errors or the result type.
    repl        Starts a read-eval-print-loop to explore xelf. It uses the input
@@ -70,7 +72,7 @@ Development commands
    fix         Fixes the input and prints the result.
    list        Searches for files and modules and prints the result.
 
-Literal stream commands
+Literal commands work on streams of json or xelf values
    sel         Selects a path from the input and streams the result.
    mut         Applies a delta to the input and steams the result.
    json        Converts the input to JSON and streams the result.

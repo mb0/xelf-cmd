@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"xelf.org/cmd"
+	"xelf.org/xelf/ast"
 	"xelf.org/xelf/cor"
 	"xelf.org/xelf/lit"
 )
@@ -24,19 +27,17 @@ var _ = cmd.Add("sel", func(dir string, args []string) error {
 			return err
 		}
 	}
-	// read the literal from stdin
-	val, err := lit.Read(os.Stdin, "stdin")
-	if err != nil {
-		return fmt.Errorf("could not read a literal from stdin: %v", err)
-	}
-	// selection the path
-	res, err := lit.SelectPath(val, p)
-	if err != nil {
-		return fmt.Errorf("failed: %v", err)
-	}
-	// and print results
-	fmt.Println(res)
-	return nil
+	// apply the selection to a stream of values
+	return stdinStream(func(val lit.Val) error {
+		// select the path
+		res, err := lit.SelectPath(val, p)
+		if err != nil {
+			return err
+		}
+		// and print results
+		fmt.Println(res)
+		return nil
+	})
 })
 
 var _ = cmd.Add("mut", func(dir string, args []string) error {
@@ -48,30 +49,55 @@ var _ = cmd.Add("mut", func(dir string, args []string) error {
 	if err != nil {
 		return fmt.Errorf("could not read the delta dict: %v", err)
 	}
-	val, err := lit.Read(os.Stdin, "stdin")
-	if err != nil {
-		return fmt.Errorf("could not read a literal from stdin: %v", err)
-	}
-	mut := val.Mut()
-	mut, err = lit.Apply(mut, delta)
-	if err != nil {
-		return fmt.Errorf("failed: %v", err)
-	}
-	fmt.Println(mut)
-	return nil
+	// apply the mutation to a stream of values
+	return stdinStream(func(val lit.Val) error {
+		mut := val.Mut()
+		mut, err = lit.Apply(mut, delta)
+		if err != nil {
+			return fmt.Errorf("failed: %v", err)
+		}
+		fmt.Println(mut)
+		return nil
+	})
 })
 
 var _ = cmd.Add("json", func(dir string, args []string) error {
 	// TODO args maybe to configure pretty printing?
-	val, err := lit.Read(os.Stdin, "stdin")
-	if err != nil {
-		return fmt.Errorf("could not read a literal from stdin: %v", err)
-	}
-	buf, err := val.MarshalJSON()
-	if err != nil {
-		return fmt.Errorf("could not marshal literal: %v", err)
-	}
-	os.Stdout.Write(buf)
-	fmt.Println()
-	return nil
+	// print a stream of values as json
+	return stdinStream(func(val lit.Val) error {
+		buf, err := val.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("could not marshal literal: %v", err)
+		}
+		os.Stdout.Write(buf)
+		fmt.Println()
+		return nil
+	})
 })
+
+func stdinStream(f func(lit.Val) error) error {
+	// create a new lexer for stdin
+	lex := ast.NewLexer(os.Stdin, "stdin")
+	// apply the function to a stream of values
+	for {
+		// read an ast node from the lexer
+		a, err := ast.Scan(lex)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return fmt.Errorf("could not read a literal from stdin: %v", err)
+		}
+		// parse value
+		val, err := lit.ParseVal(a)
+		if err != nil {
+			return err
+		}
+		// apply the function
+		err = f(val)
+		if err != nil {
+			return fmt.Errorf("failed: %v", err)
+		}
+	}
+	return nil
+}
