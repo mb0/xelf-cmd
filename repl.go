@@ -12,6 +12,7 @@ import (
 	"github.com/peterh/liner"
 	"xelf.org/xelf/bfr"
 	"xelf.org/xelf/exp"
+	"xelf.org/xelf/lit"
 )
 
 func ReplHistoryPath(rest string) string {
@@ -34,9 +35,10 @@ func NewRepl(hist string) *Repl {
 }
 
 func (r Repl) Run() {
-	r.readHistory()
 	defer r.Close()
+	r.readHistory()
 	var raw []byte
+	arg := &lit.Keyed{}
 	p := Prog()
 	for {
 		prompt := "> "
@@ -61,16 +63,16 @@ func (r Repl) Run() {
 				raw = append(raw, '\n')
 				continue
 			}
-			log.Printf("error parsing %s: %v", got, err)
+			log.Printf("! %v\n\n", err)
 			r.AppendHistory(string(raw))
 			raw = raw[:0]
 			continue
 		}
 		r.AppendHistory(bfr.String(el))
 		raw = raw[:0]
-		l, err := p.Run(el, nil)
+		l, err := p.Run(el, arg)
 		if err != nil {
-			log.Printf("error resolving %s: %v", got, err)
+			log.Printf("! %v\n\n", err)
 			continue
 		}
 		fmt.Printf("= %s\n\n", bfr.String(l))

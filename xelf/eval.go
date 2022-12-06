@@ -1,18 +1,39 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"os"
+	"strings"
 
 	"xelf.org/cmd"
+	"xelf.org/xelf/exp"
+	"xelf.org/xelf/lit"
 )
 
-func eval(args []string) {
-	res, err := cmd.Prog().RunStr(args[0], nil)
-	log.Printf("%v %v", res, err)
-}
-func repl(args []string) error {
-	r := cmd.NewRepl(cmd.ReplHistoryPath("xelf/repl.history"))
-	defer r.Close()
-	r.Run()
-	return nil
-}
+var _ = cmd.Add("run", func(args []string) error {
+	return cmd.SafetyWrap(func() (err error) {
+		var x exp.Exp
+		if len(args) > 0 {
+			x, err = exp.Parse(strings.Join(args, " "))
+		} else {
+			x, err = exp.Read(os.Stdin, "stdin")
+		}
+		if err != nil {
+			return err
+		}
+		res, err := cmd.Prog().Run(x, &lit.Keyed{})
+		if err != nil {
+			return err
+		}
+		fmt.Println(res)
+		return nil
+	})
+})
+var _ = cmd.Add("repl", func(args []string) error {
+	return cmd.SafetyWrap(func() error {
+		r := cmd.NewRepl(cmd.ReplHistoryPath("xelf/repl.history"))
+		defer r.Close()
+		r.Run()
+		return nil
+	})
+})
