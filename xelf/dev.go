@@ -10,17 +10,17 @@ import (
 	"xelf.org/xelf/xps"
 )
 
-var _ = cmd.Add("fmt", func(args []string) error {
+var _ = cmd.Add("fmt", func(dir string, args []string) error {
 	// TODO implements real formatter for now only pipe stdin to stdout
 	_, err := io.Copy(os.Stdout, os.Stdin)
 	return err
 })
-var _ = cmd.Add("fix", func(args []string) error {
+var _ = cmd.Add("fix", func(dir string, args []string) error {
 	// TODO implements real formatter for now only pipe stdin to stdout
 	_, err := io.Copy(os.Stdout, os.Stdin)
 	return err
 })
-var _ = cmd.Add("list", func(args []string) error {
+var _ = cmd.Add("list", func(dir string, args []string) error {
 	roots := xps.EnvRoots()
 	if fmt.Print("XELF_PLUGINS "); len(roots) == 0 {
 		fmt.Println("not set")

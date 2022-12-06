@@ -9,7 +9,7 @@ import (
 	"xelf.org/xelf/lit"
 )
 
-var _ = cmd.Add("sel", func(args []string) error {
+var _ = cmd.Add("sel", func(dir string, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("expects a selection path argument")
 	}
@@ -39,7 +39,7 @@ var _ = cmd.Add("sel", func(args []string) error {
 	return nil
 })
 
-var _ = cmd.Add("mut", func(args []string) error {
+var _ = cmd.Add("mut", func(dir string, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("expects a delta dict argument")
 	}
@@ -61,7 +61,7 @@ var _ = cmd.Add("mut", func(args []string) error {
 	return nil
 })
 
-var _ = cmd.Add("json", func(args []string) error {
+var _ = cmd.Add("json", func(dir string, args []string) error {
 	// TODO args maybe to configure pretty printing?
 	val, err := lit.Read(os.Stdin, "stdin")
 	if err != nil {

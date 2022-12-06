@@ -11,7 +11,7 @@ import (
 	"xelf.org/xelf/typ"
 )
 
-var _ = cmd.Add("run", func(args []string) error {
+var _ = cmd.Add("run", func(dir string, args []string) error {
 	return cmd.SafetyWrap(func() (err error) {
 		var x exp.Exp
 		if len(args) > 0 {
@@ -30,7 +30,7 @@ var _ = cmd.Add("run", func(args []string) error {
 		return nil
 	})
 })
-var _ = cmd.Add("test", func(args []string) error {
+var _ = cmd.Add("test", func(dir string, args []string) error {
 	return cmd.SafetyWrap(func() (err error) {
 		var x exp.Exp
 		if len(args) > 0 {
@@ -51,7 +51,7 @@ var _ = cmd.Add("test", func(args []string) error {
 		return nil
 	})
 })
-var _ = cmd.Add("repl", func(args []string) error {
+var _ = cmd.Add("repl", func(dir string, args []string) error {
 	return cmd.SafetyWrap(func() error {
 		r := cmd.NewRepl(cmd.ReplHistoryPath("xelf/repl.history"))
 		defer r.Close()
