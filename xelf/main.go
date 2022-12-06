@@ -26,10 +26,20 @@ func main() {
 	case "bash.inc":
 		printCompletion()
 	default:
+		var all []xps.Manifest
 		c := cmd.All[subcmd]
 		if c == nil {
+			all = xps.FindAll(xps.EnvRoots())
+			plugCmd, err := xps.PlugCmd(all, subcmd)
+			if err != nil {
+				log.Fatalf("loading plug %s: %v", subcmd, err)
+			}
+			c = &cmd.Cmd{Name: subcmd, Func: plugCmd}
+		}
+		if c == nil {
 			log.Printf("unknown subcommand %q\n", subcmd)
-			printUsage()
+			fmt.Print(usage)
+			printPluginHelp(all)
 			os.Exit(1)
 		}
 		err := c.Func(dir, flag.Args()[1:])
