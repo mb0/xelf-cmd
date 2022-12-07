@@ -132,16 +132,19 @@ func printCompletion() {
 		subs = append(subs, sub)
 	}
 	for _, m := range xps.FindAll(xps.EnvRoots()) {
-		psub = psub[:]
+		if len(m.Cmds) == 0 {
+			continue
+		}
+		psub = psub[:0]
 		for _, kv := range m.Cmds {
 			if kv.Key != "" {
 				psub = append(psub, kv.Key)
 			}
 		}
+		subs = append(subs, m.Name)
 		if len(psub) == 0 {
 			continue
 		}
-		subs = append(subs, m.Name)
 		plugs = append(plugs, fmt.Sprintf(plugFmt, m.Name, strings.Join(psub, " ")))
 	}
 	fmt.Printf(complFmt, strings.Join(subs, " "), strings.Join(plugs, ""))
