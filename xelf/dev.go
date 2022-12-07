@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"xelf.org/cmd"
@@ -53,6 +54,30 @@ var _ = cmd.Add("list", func(dir string, args []string) error {
 				fmt.Printf(dotfmt, "Commands:", strings.Join(cmds, ", "))
 			}
 		}
+	}
+	return nil
+})
+var _ = cmd.Add("rebuild", func(dir string, args []string) error {
+	pms := xps.FindAll(xps.EnvRoots())
+	fmt.Printf("Checking %d plugins…\n", len(pms))
+	var errn int
+	for _, pm := range pms {
+		pdir, _ := filepath.Split(pm.Path)
+		_, err := os.Stat(filepath.Join(pdir, "plugin.go"))
+		if err != nil { // no plugin source found, move on
+			continue
+		}
+		fmt.Printf("   · building %s …\n", pm.Name)
+		res, err := cmd.GoTool(pdir, "build", "-buildmode=plugin")
+		if err != nil {
+			errn++
+			fmt.Printf("   ! failed: %s\n", res)
+			continue
+		}
+		fmt.Printf("     ok\n")
+	}
+	if errn != 0 {
+		return fmt.Errorf("failed to rebuild some plugin sources")
 	}
 	return nil
 })

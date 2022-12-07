@@ -81,6 +81,7 @@ Development commands
    fmt         Formats the input and prints the result.
    fix         Fixes the input and prints the result.
    list        Searches for files and modules and prints the result.
+   rebuild     Rebuilds all plugin sources it can find.
 
 Literal commands work on streams of json or xelf values
    sel         Selects a path from the input and streams the result.
