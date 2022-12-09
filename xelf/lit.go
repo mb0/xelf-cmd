@@ -10,20 +10,21 @@ import (
 	"xelf.org/xelf/ast"
 	"xelf.org/xelf/cor"
 	"xelf.org/xelf/lit"
+	"xelf.org/xelf/xps"
 )
 
-var _ = cmd.Add("sel", func(dir string, args []string) error {
-	if len(args) == 0 {
+var _ = cmd.Add("sel", func(ctx *xps.CmdCtx) error {
+	if len(ctx.Args) == 0 {
 		return fmt.Errorf("expects a selection path argument")
 	}
 	// read path from first arg
-	p, err := cor.ParsePath(args[0])
+	p, err := cor.ParsePath(ctx.Args[0])
 	if err != nil {
 		return fmt.Errorf("could not read the path: %v", err)
 	}
 	// optionally followed by path variables
 	if n := p.CountVars(); n > 0 {
-		if err = p.FillVars(args[1:]); err != nil {
+		if err = p.FillVars(ctx.Args[1:]); err != nil {
 			return err
 		}
 	}
@@ -40,12 +41,12 @@ var _ = cmd.Add("sel", func(dir string, args []string) error {
 	})
 })
 
-var _ = cmd.Add("mut", func(dir string, args []string) error {
-	if len(args) == 0 {
+var _ = cmd.Add("mut", func(ctx *xps.CmdCtx) error {
+	if len(ctx.Args) == 0 {
 		return fmt.Errorf("expects a delta dict argument")
 	}
 	var delta lit.Delta
-	err := lit.ParseInto(args[0], (*lit.Keyed)(&delta))
+	err := lit.ParseInto(ctx.Args[0], (*lit.Keyed)(&delta))
 	if err != nil {
 		return fmt.Errorf("could not read the delta dict: %v", err)
 	}
@@ -61,7 +62,7 @@ var _ = cmd.Add("mut", func(dir string, args []string) error {
 	})
 })
 
-var _ = cmd.Add("json", func(dir string, args []string) error {
+var _ = cmd.Add("json", func(ctx *xps.CmdCtx) error {
 	// TODO args maybe to configure pretty printing?
 	// print a stream of values as json
 	return stdinStream(func(val lit.Val) error {

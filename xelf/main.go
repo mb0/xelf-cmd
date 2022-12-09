@@ -18,19 +18,17 @@ func main() {
 	flag.Usage = printUsage
 	flag.Parse()
 	log.SetFlags(0)
-	dir := *dirFlag
-	subcmd := flag.Arg(0)
+	ctx := cmd.DefaultCtx(*dirFlag, flag.Args())
+	subcmd := ctx.Split()
 	switch subcmd {
 	case "version":
 		fmt.Println("alpha-dev")
 	case "bash.inc":
-		printCompletion()
+		printCompletion(ctx)
 	default:
-		var all []xps.Manifest
 		c := cmd.All[subcmd]
 		if c == nil {
-			all = xps.FindAll(xps.EnvRoots())
-			plugCmd, err := xps.PlugCmd(all, subcmd)
+			plugCmd, err := xps.PlugCmd(ctx, subcmd)
 			if err != nil {
 				log.Fatalf("loading plug %s: %v", subcmd, err)
 			}
@@ -39,18 +37,25 @@ func main() {
 		if c == nil {
 			log.Printf("unknown subcommand %q\n", subcmd)
 			fmt.Print(usage)
-			printPluginHelp(all)
+			printPluginHelp(ctx)
 			os.Exit(1)
 		}
-		err := c.Func(dir, flag.Args()[1:])
+		err := c.Func(ctx)
 		if err != nil {
-			log.Fatalf("xelf %s %v", subcmd, err)
+			if redir, _ := err.(*xps.CmdRedir); redir != nil {
+				c = cmd.All[redir.Cmd]
+				if err = c.Func(ctx); err != nil {
+					log.Fatalf("xelf %s→ %s %v", subcmd, redir.Cmd, err)
+				}
+			} else {
+				log.Fatalf("xelf %s %v", subcmd, err)
+			}
 		}
 	case "":
 		printUsage()
 	case "help":
 		fmt.Print(usage)
-		printPluginHelp(xps.FindAll(xps.EnvRoots()))
+		printPluginHelp(ctx)
 		fmt.Println()
 	}
 }
@@ -96,10 +101,12 @@ Other commands
 
 `
 
-func printPluginHelp(ms []xps.Manifest) {
+func printPluginHelp(ctx *xps.CmdCtx) {
 	var header bool
+	ms := ctx.Manifests()
 	for _, m := range ms {
-		if len(m.Cmds) == 0 {
+		cmds := m.Cmds()
+		if len(cmds) == 0 {
 			continue
 		}
 		if !header {
@@ -107,7 +114,6 @@ func printPluginHelp(ms []xps.Manifest) {
 			header = true
 		}
 		fmt.Println()
-		cmds := m.Cmds
 		var info string
 		if fst := cmds[0]; fst.Key == "" {
 			info = fst.Val.String()
@@ -126,18 +132,19 @@ func printPluginHelp(ms []xps.Manifest) {
 	}
 }
 
-func printCompletion() {
+func printCompletion(ctx *xps.CmdCtx) {
 	var subs, plugs, psub []string
 	subs = append(subs, "version", "help")
 	for sub := range cmd.All {
 		subs = append(subs, sub)
 	}
-	for _, m := range xps.FindAll(xps.EnvRoots()) {
-		if len(m.Cmds) == 0 {
+	for _, m := range ctx.Manifests() {
+		cmds := m.Cmds()
+		if len(cmds) == 0 {
 			continue
 		}
 		psub = psub[:0]
-		for _, kv := range m.Cmds {
+		for _, kv := range cmds {
 			if kv.Key != "" {
 				psub = append(psub, kv.Key)
 			}

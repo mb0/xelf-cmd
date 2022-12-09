@@ -29,8 +29,12 @@ type Cmd struct {
 
 var All = make(map[string]*Cmd)
 
-func Add(name string, f func(string, []string) error) *Cmd {
+func Add(name string, f xps.Cmd) *Cmd {
 	c := &Cmd{name, f}
 	All[name] = c
 	return c
+}
+
+func DefaultCtx(dir string, args []string) *xps.CmdCtx {
+	return &xps.CmdCtx{Dir: dir, Args: args}
 }

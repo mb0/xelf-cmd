@@ -7,13 +7,18 @@ import (
 	"xelf.org/xelf/xps"
 )
 
-func ProgRoot() exp.Env {
-	roots := xps.EnvRoots()
-	mods := xps.NewMods(mod.Registry, xps.FindAll(roots))
-	fmods := mod.FileMods()
-	return mod.NewLoaderEnv(extlib.Std, mods, fmods)
+func DefaultProg(ctx *xps.CmdCtx) *exp.Prog {
+	if ctx.Prog != nil {
+		return ctx.Prog(ctx)
+	}
+	return exp.NewProg(DefaultEnv(ctx))
 }
-
-func Prog() *exp.Prog {
-	return exp.NewProg(ProgRoot())
+func DefaultEnv(ctx *xps.CmdCtx) exp.Env {
+	if ctx.Mods == nil {
+		ctx.Mods = xps.NewMods(mod.Registry, ctx.Manifests())
+	}
+	if ctx.Fmod == nil {
+		ctx.Fmod = mod.FileMods()
+	}
+	return mod.NewLoaderEnv(extlib.Std, ctx.Mods, ctx.Fmod)
 }

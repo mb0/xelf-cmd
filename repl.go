@@ -6,45 +6,35 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/peterh/liner"
 	"xelf.org/xelf/bfr"
 	"xelf.org/xelf/exp"
 	"xelf.org/xelf/lit"
+	"xelf.org/xelf/xps"
 )
-
-func ReplHistoryPath(rest string) string {
-	path, err := os.UserCacheDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(path, rest)
-}
 
 type Repl struct {
 	*liner.State
-	Hist string
-	Prog *exp.Prog
-	Wrap func(exp.Env) exp.Env
+	Hist ReplHistory
+	Ctx  *xps.CmdCtx
 }
 
-func NewRepl(hist string) *Repl {
+func NewRepl(ctx *xps.CmdCtx, hist ReplHistory) *Repl {
 	lin := liner.NewLiner()
 	lin.SetMultiLineMode(true)
-	return &Repl{State: lin, Hist: hist}
+	return &Repl{State: lin, Ctx: ctx, Hist: hist}
 }
 
-func (r Repl) Run() {
+func (r *Repl) Run() {
 	defer r.Close()
-	r.readHistory()
+	err := r.Hist.Read(r)
+	if err != nil {
+		log.Printf("error reading repl history: %v\n", err)
+	}
 	var raw []byte
 	arg := &lit.Keyed{}
-	p := r.Prog
-	if p == nil {
-		p = Prog()
-	}
+	p := DefaultProg(r.Ctx)
 	for {
 		prompt := "> "
 		if len(raw) > 0 {
@@ -53,7 +43,10 @@ func (r Repl) Run() {
 		got, err := r.Prompt(prompt)
 		if err != nil {
 			if err == io.EOF {
-				r.writeHistory()
+				herr := r.Hist.Write(r)
+				if herr != nil {
+					log.Printf("error writing repl history: %v\n", herr)
+				}
 				fmt.Println()
 				return
 			}
@@ -76,11 +69,11 @@ func (r Repl) Run() {
 		r.AppendHistory(bfr.String(el))
 		raw = raw[:0]
 		org := p.Root
-		if r.Wrap != nil {
-			p.Root = r.Wrap(org)
+		if r.Ctx.Wrap != nil {
+			p.Root = r.Ctx.Wrap(r.Ctx, org)
 		}
 		l, err := p.Run(el, arg)
-		if r.Wrap != nil {
+		if r.Ctx.Wrap != nil {
 			p.Root = org
 		}
 		if err != nil {
@@ -88,43 +81,5 @@ func (r Repl) Run() {
 			continue
 		}
 		fmt.Printf("= %s\n\n", bfr.String(l))
-	}
-}
-
-func (r *Repl) readHistory() {
-	if r.Hist == "" {
-		return
-	}
-	f, err := os.Open(r.Hist)
-	if err != nil {
-		log.Printf("error reading repl history file %q: %v\n", r.Hist, err)
-		return
-	}
-	defer f.Close()
-	_, err = r.ReadHistory(f)
-	if err != nil {
-		log.Printf("error reading repl history file %q: %v\n", r.Hist, err)
-	}
-}
-
-func (r *Repl) writeHistory() {
-	if r.Hist == "" {
-		return
-	}
-	dir := filepath.Dir(r.Hist)
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		log.Printf("error creating dir for repl history %q: %v\n", dir, err)
-		return
-	}
-	f, err := os.Create(r.Hist)
-	if err != nil {
-		log.Printf("error creating file for repl history %q: %v\n", r.Hist, err)
-		return
-	}
-	defer f.Close()
-	_, err = r.WriteHistory(f)
-	if err != nil {
-		log.Printf("error writing repl history file %q: %v\n", r.Hist, err)
 	}
 }

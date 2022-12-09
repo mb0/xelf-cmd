@@ -4,45 +4,45 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"xelf.org/cmd"
 	"xelf.org/xelf/xps"
 )
 
-var _ = cmd.Add("fmt", func(dir string, args []string) error {
+var _ = cmd.Add("fmt", func(ctx *xps.CmdCtx) error {
 	// TODO implements real formatter for now only pipe stdin to stdout
 	_, err := io.Copy(os.Stdout, os.Stdin)
 	return err
 })
-var _ = cmd.Add("fix", func(dir string, args []string) error {
+var _ = cmd.Add("fix", func(ctx *xps.CmdCtx) error {
 	// TODO implements real formatter for now only pipe stdin to stdout
 	_, err := io.Copy(os.Stdout, os.Stdin)
 	return err
 })
-var _ = cmd.Add("list", func(dir string, args []string) error {
+var _ = cmd.Add("list", func(ctx *xps.CmdCtx) error {
 	// TODO use fsmods to discover all xelf files in dir
-	roots := xps.EnvRoots()
-	if len(roots) == 0 {
-		fmt.Println("No XELF_PLUGINS path list set.")
-		return nil
-	}
-	pms := xps.FindAll(roots)
+	pms := ctx.Manifests()
 	if len(pms) == 0 {
-		fmt.Printf("No plugin manifests found in: %s\n", strings.Join(roots, ", "))
+		if roots := xps.EnvRoots(); len(roots) == 0 {
+			fmt.Println("No XELF_PLUGINS path list set.")
+			return nil
+		} else {
+			fmt.Printf("No plugin manifests found in: %s\n", strings.Join(roots, ", "))
+		}
 		return nil
 	} else {
 		fmt.Println("Found plugin manifests:")
 		for _, pm := range pms {
 			fmt.Printf("   %-11s (%s)\n", pm.Name, pm.Path)
 			const dotfmt = "   · %-9s %s\n"
-			if len(pm.Mods) > 0 {
-				fmt.Printf(dotfmt, "Modules:", strings.Join(pm.Mods, ", "))
+			if mods := pm.Mods(); len(mods) > 0 {
+				fmt.Printf(dotfmt, "Modules:", strings.Join(mods, ", "))
 			}
-			if len(pm.Cmds) > 0 {
-				cmds := make([]string, 0, len(pm.Cmds))
-				for _, c := range pm.Cmds {
+			cs := pm.Cmds()
+			if len(cs) > 0 {
+				cmds := make([]string, 0, len(cs))
+				for _, c := range cs {
 					if c.Key != "" {
 						name := fmt.Sprintf("%s %s", pm.Name, c.Key)
 						cmds = append(cmds, name)
@@ -57,21 +57,21 @@ var _ = cmd.Add("list", func(dir string, args []string) error {
 	}
 	return nil
 })
-var _ = cmd.Add("rebuild", func(dir string, args []string) error {
-	pms := xps.FindAll(xps.EnvRoots())
+var _ = cmd.Add("rebuild", func(ctx *xps.CmdCtx) error {
+	// TODO use args to filter plugins?
+	pms := ctx.Manifests()
 	fmt.Printf("Checking %d plugins…\n", len(pms))
 	var errn int
 	for _, pm := range pms {
-		pdir, _ := filepath.Split(pm.Path)
-		_, err := os.Stat(filepath.Join(pdir, "plugin.go"))
-		if err != nil { // no plugin source found, move on
+		if !xps.HasSource(pm) {
+			fmt.Printf("   · no source for %s\n", pm.Name)
 			continue
 		}
 		fmt.Printf("   · building %s …\n", pm.Name)
-		res, err := cmd.GoTool(pdir, "build", "-buildmode=plugin")
+		err := xps.Rebuild(pm)
 		if err != nil {
 			errn++
-			fmt.Printf("   ! failed: %s\n", res)
+			fmt.Printf("   ! failed: %v\n", err)
 			continue
 		}
 		fmt.Printf("     ok\n")
