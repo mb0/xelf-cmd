@@ -13,12 +13,11 @@ func DefaultProg(ctx *xps.CmdCtx) *exp.Prog {
 	}
 	return exp.NewProg(DefaultEnv(ctx))
 }
+
 func DefaultEnv(ctx *xps.CmdCtx) exp.Env {
-	if ctx.Mods == nil {
-		ctx.Mods = xps.NewMods(mod.Registry, ctx.Manifests())
-	}
-	if ctx.Fmod == nil {
-		ctx.Fmod = mod.FileMods()
-	}
-	return mod.NewLoaderEnv(extlib.Std, ctx.Mods, ctx.Fmod)
+	ctx.Manifests()
+	return mod.NewLoaderEnv(extlib.Std,
+		&xps.ModLoader{Sys: mod.Registry, Plugs: &ctx.Plugs},
+		mod.FileMods(ctx.Dir),
+	)
 }

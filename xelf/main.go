@@ -26,9 +26,10 @@ func main() {
 	case "bash.inc":
 		printCompletion(ctx)
 	default:
+
 		c := cmd.All[subcmd]
 		if c == nil {
-			plugCmd, err := xps.PlugCmd(ctx, subcmd)
+			plugCmd, err := ctx.LoadCmd(subcmd)
 			if err != nil {
 				log.Fatalf("loading plug %s: %v", subcmd, err)
 			}
