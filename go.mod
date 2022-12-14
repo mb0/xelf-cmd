@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/peterh/liner v1.2.2
-	xelf.org/xelf v0.0.0-20221209064811-42a4aa046057
+	xelf.org/xelf v0.0.0-20221214190218-1d315bacae96
 )
 
 require (

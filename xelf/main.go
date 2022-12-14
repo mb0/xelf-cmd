@@ -26,16 +26,16 @@ func main() {
 	case "bash.inc":
 		printCompletion(ctx)
 	default:
-
 		c := cmd.All[subcmd]
 		if c == nil {
+			ctx.Manifests()
 			plugCmd, err := ctx.LoadCmd(subcmd)
 			if err != nil {
 				log.Fatalf("loading plug %s: %v", subcmd, err)
 			}
 			c = &cmd.Cmd{Name: subcmd, Func: plugCmd}
 		}
-		if c == nil {
+		if c == nil || c.Func == nil {
 			log.Printf("unknown subcommand %q\n", subcmd)
 			fmt.Print(usage)
 			printPluginHelp(ctx)
